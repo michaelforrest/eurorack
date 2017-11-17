@@ -27,7 +27,7 @@
 #include "grids/resources.h"
 
 namespace grids {
-  
+
 using namespace avrlib;
 
 /* static */
@@ -66,13 +66,21 @@ uint8_t PatternGenerator::factory_testing_;
 /* extern */
 PatternGenerator pattern_generator;
 
-static const prog_uint8_t* drum_map[5][5] = {
-  { node_10, node_8, node_0, node_9, node_11 },
-  { node_15, node_7, node_13, node_12, node_6 },
-  { node_18, node_14, node_4, node_5, node_3 },
-  { node_23, node_16, node_21, node_1, node_2 },
-  { node_24, node_19, node_17, node_20, node_22 },
+// static const prog_uint8_t* drum_map[5][5] = {
+//   { node_10, node_8, node_0, node_9, node_11 },
+//   { node_15, node_7, node_13, node_12, node_6 },
+//   { node_18, node_14, node_4, node_5, node_3 },
+//   { node_23, node_16, node_21, node_1, node_2 },
+//   { node_24, node_19, node_17, node_20, node_22 },
+// };
+
+static const prog_uint8_t* flat_drum_map[16] = {
+  node_0, node_1, node_2, node_3, node_4, node_5, node_6, node_7, node_8, node_9, node_10, node_11, node_12, node_13, node_14, node_15
 };
+
+bool PatternGenerator::triplets(){
+  return settings_.options.drums.x >> 4 == 9; // TODO: move this into a data structure
+}
 
 /* static */
 uint8_t PatternGenerator::ReadDrumMap(
@@ -80,59 +88,74 @@ uint8_t PatternGenerator::ReadDrumMap(
     uint8_t instrument,
     uint8_t x,
     uint8_t y) {
-  uint8_t i = x >> 6;
-  uint8_t j = y >> 6;
-  const prog_uint8_t* a_map = drum_map[i][j];
-  const prog_uint8_t* b_map = drum_map[i + 1][j];
-  const prog_uint8_t* c_map = drum_map[i][j + 1];
-  const prog_uint8_t* d_map = drum_map[i + 1][j + 1];
-  uint8_t offset = (instrument * kStepsPerPattern) + step;
-  uint8_t a = pgm_read_byte(a_map + offset);
-  uint8_t b = pgm_read_byte(b_map + offset);
-  uint8_t c = pgm_read_byte(c_map + offset);
-  uint8_t d = pgm_read_byte(d_map + offset);
-  return U8Mix(U8Mix(a, b, x << 2), U8Mix(c, d, x << 2), y << 2);
+  //  ditch most of this and just have the X knob
+  // select from one of 16 patterns and save the Y knob for something else
+  uint8_t i = x >> 4;
+
+  // const prog_uint8_t* a_map = drum_map[i][j];
+  // const prog_uint8_t* b_map = drum_map[i + 1][j];
+  // const prog_uint8_t* c_map = drum_map[i][j + 1];
+  // const prog_uint8_t* d_map = drum_map[i + 1][j + 1];
+  const prog_uint8_t* map = flat_drum_map[i];
+  uint8_t offset = (instrument * stepsPerPattern()) + step;
+  // uint8_t a = pgm_read_byte(a_map + offset);
+  // uint8_t b = pgm_read_byte(b_map + offset);
+  // uint8_t c = pgm_read_byte(c_map + offset);
+  // uint8_t d = pgm_read_byte(d_map + offset);
+  // return U8Mix(U8Mix(a, b, x << 2), U8Mix(c, d, x << 2), y << 2);
+  return pgm_read_byte(map + offset);
 }
 
 /* static */
 void PatternGenerator::EvaluateDrums() {
+  // Kill part perturbation because of problems compiling if I
+  // add additional logic!
+  // `unable to find a register to spill in class 'POINTER_REGS'`
+
   // At the beginning of a pattern, decide on perturbation levels.
-  if (step_ == 0) {
-    for (uint8_t i = 0; i < kNumParts; ++i) {
-      uint8_t randomness = options_.swing
-          ? 0 : settings_.options.drums.randomness >> 2;
-      part_perturbation_[i] = U8U8MulShift8(Random::GetByte(), randomness);
-    }
-  }
-  
+  // if (step_ == 0) {
+  //   for (uint8_t i = 0; i < kNumParts; ++i) {
+  //     uint8_t randomness = options_.swing
+  //         ? 0 : settings_.options.drums.randomness >> 2;
+  //     part_perturbation_[i] = U8U8MulShift8(Random::GetByte(), randomness);
+  //   }
+  // }
+
   uint8_t instrument_mask = 1;
   uint8_t x = settings_.options.drums.x;
   uint8_t y = settings_.options.drums.y;
   uint8_t accent_bits = 0;
+
   for (uint8_t i = 0; i < kNumParts; ++i) {
     uint8_t level = ReadDrumMap(step_, i, x, y);
-    if (level < 255 - part_perturbation_[i]) {
-      level += part_perturbation_[i];
-    } else {
-      // The sequencer from Anushri uses a weird clipping rule here. Comment
-      // this line to reproduce its behavior.
-      level = 255;
-    }
+    bool isHihatPart = i == 2;
+
+    // if (level < 255 - part_perturbation_[i]) {
+    //   level += part_perturbation_[i];
+    // } else {
+    //   // The sequencer from Anushri uses a weird clipping rule here. Comment
+    //   // this line to reproduce its behavior.
+    //   level = 255;
+    // }
     uint8_t threshold = ~settings_.density[i];
     if (level > threshold) {
       if (level > 192) {
-        accent_bits |= instrument_mask;
+        if(!isHihatPart || (isHihatPart && y > 100)){
+          accent_bits |= instrument_mask;
+        }
       }
       state_ |= instrument_mask;
     }
     instrument_mask <<= 1;
   }
-  if (output_clock()) {
-    state_ |= accent_bits ? OUTPUT_BIT_COMMON : 0;
-    state_ |= step_ == 0 ? OUTPUT_BIT_RESET : 0;
-  } else {
+  // Killing the output_clock mode because it keeps getting reset to this mode
+  // every time I upload to the board
+  // if (output_clock()) {
+  //   state_ |= accent_bits ? OUTPUT_BIT_COMMON : 0;
+  //   state_ |= step_ == 0 ? OUTPUT_BIT_RESET : 0;
+  // } else {
     state_ |= accent_bits << 3;
-  }
+  // }
 }
 
 /* static */
@@ -141,7 +164,7 @@ void PatternGenerator::EvaluateEuclidean() {
   if (step_ & 1) {
     return;
   }
-  
+
   // Euclidean pattern generation
   uint8_t instrument_mask = 1;
   uint8_t reset_bits = 0;
@@ -162,7 +185,7 @@ void PatternGenerator::EvaluateEuclidean() {
     }
     instrument_mask <<= 1;
   }
-  
+
   if (output_clock()) {
     state_ |= reset_bits ? OUTPUT_BIT_COMMON : 0;
     state_ |= (reset_bits == 0x07) ? OUTPUT_BIT_RESET : 0;
@@ -191,12 +214,12 @@ void PatternGenerator::SaveSettings() {
 void PatternGenerator::Evaluate() {
   state_ = 0;
   pulse_duration_counter_ = 0;
-  
+
   Random::Update();
   // Highest bits: clock and random bit.
   state_ |= 0x40;
   state_ |= Random::state() & 0x80;
-  
+
   if (output_clock()) {
     state_ |= OUTPUT_BIT_CLOCK;
   }
@@ -205,7 +228,7 @@ void PatternGenerator::Evaluate() {
   if (pulse_ != 0) {
     return;
   }
-  
+
   if (options_.output_mode == OUTPUT_MODE_EUCLIDEAN) {
     EvaluateEuclidean();
   } else {
@@ -224,4 +247,3 @@ int8_t PatternGenerator::swing_amount() {
 }
 
 }  // namespace grids
-

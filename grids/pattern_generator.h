@@ -79,7 +79,7 @@ struct Options {
   bool tap_tempo;
   bool gate_mode;
   bool swing;
-  
+
   uint8_t pack() const {
     uint8_t byte = clock_resolution;
     if (!swing) {
@@ -99,7 +99,7 @@ struct Options {
     }
     return byte;
   }
-  
+
   void unpack(uint8_t byte) {
     tap_tempo = byte & 0x10;
     output_clock = byte & 0x20;
@@ -117,7 +117,15 @@ class PatternGenerator {
  public:
   PatternGenerator() { }
   ~PatternGenerator() { }
-  
+
+  static bool triplets();
+  static inline uint8_t stepsPerPattern(){
+    return triplets() ? 18 : 32;
+  }
+  static inline uint8_t pulsesPerStep(){
+    return triplets() ? 4 : 3;
+  }
+
   static inline void Init() {
     LoadSettings();
     Reset();
@@ -128,21 +136,21 @@ class PatternGenerator {
     pulse_ = 0;
     memset(euclidean_step_, 0, sizeof(euclidean_step_));
   }
-  
+
   static inline void Retrigger() {
     Evaluate();
   }
-  
+
   static inline void TickClock(uint8_t num_pulses) {
     Evaluate();
     beat_ = (step_ & 0x7) == 0;
     first_beat_ = step_ == 0;
-    
+
     pulse_ += num_pulses;
-    
+
     // Wrap into ppqn steps.
-    while (pulse_ >= kPulsesPerStep) {
-      pulse_ -= kPulsesPerStep;
+    while (pulse_ >= pulsesPerStep()) {
+      pulse_ -= pulsesPerStep();
       if (!(step_ & 1)) {
         for (uint8_t i = 0; i < kNumParts; ++i) {
           ++euclidean_step_[i];
@@ -150,18 +158,18 @@ class PatternGenerator {
       }
       ++step_;
     }
-    
+
     // Wrap into step sequence steps.
-    if (step_ >= kStepsPerPattern) {
-      step_ -= kStepsPerPattern;
+    if (step_ >= stepsPerPattern()) {
+      step_ -= stepsPerPattern();
     }
   }
-  
+
   static inline uint8_t state() {
     return state_;
   }
   static inline uint8_t step() { return step_; }
-  
+
   static inline bool swing() { return options_.swing; }
   static int8_t swing_amount();
   static inline bool output_clock() { return options_.output_clock; }
@@ -170,10 +178,10 @@ class PatternGenerator {
   static inline OutputMode output_mode() { return options_.output_mode; }
   static inline ClockResolution clock_resolution() { return options_.clock_resolution; }
 
-  static void set_swing(uint8_t value) { options_.swing = value; }  
+  static void set_swing(uint8_t value) { options_.swing = value; }
   static void set_output_clock(uint8_t value) { options_.output_clock = value; }
   static void set_tap_tempo(uint8_t value) { options_.tap_tempo = value; }
-  static void set_output_mode(uint8_t value) { 
+  static void set_output_mode(uint8_t value) {
     options_.output_mode = static_cast<OutputMode>(value);
   }
   static void set_clock_resolution(uint8_t value) {
@@ -185,7 +193,8 @@ class PatternGenerator {
   static void set_gate_mode(bool gate_mode) {
     options_.gate_mode = gate_mode;
   }
-  
+
+
   static inline void IncrementPulseCounter() {
     ++pulse_duration_counter_;
     // Zero all pulses after 1ms.
@@ -196,23 +205,23 @@ class PatternGenerator {
       //state_ &= 0x80;
     }
   }
-  
+
   static inline void ClockFallingEdge() {
     if (options_.gate_mode) {
       state_ = 0;
     }
   }
-  
+
   static inline PatternGeneratorSettings* mutable_settings() {
     return &settings_;
   }
-  
+
   static bool on_first_beat() { return first_beat_; }
   static bool on_beat() { return beat_; }
   static bool factory_testing() { return factory_testing_ < 5; }
 
   static void SaveSettings();
-  
+
   static inline uint8_t led_pattern() {
     uint8_t result = 0;
     if (state_ & 1) {
@@ -226,13 +235,13 @@ class PatternGenerator {
     }
     return result;
   }
-  
+
  private:
   static void LoadSettings();
   static void Evaluate();
   static void EvaluateEuclidean();
   static void EvaluateDrums();
-  
+
   static uint8_t ReadDrumMap(
       uint8_t step,
       uint8_t instrument,
@@ -240,22 +249,22 @@ class PatternGenerator {
       uint8_t y);
 
   static Options options_;
-  
+
   static uint8_t pulse_;
   static uint8_t step_;
   static uint8_t euclidean_step_[kNumParts];
   static bool first_beat_;
   static bool beat_;
-  
+
   static uint8_t state_;
   static uint8_t part_perturbation_[kNumParts];
 
   static uint8_t pulse_duration_counter_;
-  
+
   static uint8_t factory_testing_;
-  
+
   static PatternGeneratorSettings settings_;
-  
+
   DISALLOW_COPY_AND_ASSIGN(PatternGenerator);
 };
 
