@@ -43,7 +43,7 @@ const uint8_t kPulseDuration = 8;  // 8 ticks of the main clock.
 struct DrumsSettings {
   uint8_t x;
   uint8_t y;
-  uint8_t randomness;
+  uint8_t randomness; // between 0 and 255?
 };
 
 struct PatternGeneratorSettings {

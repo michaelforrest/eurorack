@@ -30,6 +30,8 @@ namespace grids {
 
 using namespace avrlib;
 
+uint8_t KNOB_RANGE = 256;
+
 /* static */
 Options PatternGenerator::options_;
 
@@ -121,14 +123,17 @@ void PatternGenerator::EvaluateDrums() {
   //   }
   // }
 
+  // randomness = the chaos knob, but I'm using it to offset the snare pattern
+
   uint8_t instrument_mask = 1;
   uint8_t x = settings_.options.drums.x;
   uint8_t y = settings_.options.drums.y;
   uint8_t accent_bits = 0;
 
   for (uint8_t i = 0; i < kNumParts; ++i) {
-    uint8_t level = ReadDrumMap(step_, i, x, y);
+    bool isSnarePart = i == 1;
     bool isHihatPart = i == 2;
+    uint8_t level = ReadDrumMap(isSnarePart ? (step_ + (settings_.options.drums.randomness * (KNOB_RANGE / stepsPerPattern()))) % stepsPerPattern() : step_, i, x, y);
 
     // if (level < 255 - part_perturbation_[i]) {
     //   level += part_perturbation_[i];
