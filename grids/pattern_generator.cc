@@ -133,7 +133,10 @@ void PatternGenerator::EvaluateDrums() {
   for (uint8_t i = 0; i < kNumParts; ++i) {
     bool isSnarePart = i == 1;
     bool isHihatPart = i == 2;
-    uint8_t level = ReadDrumMap(isSnarePart ? (step_ + (settings_.options.drums.randomness * (KNOB_RANGE / stepsPerPattern()))) % stepsPerPattern() : step_, i, x, y);
+    uint8_t stepNumber = isSnarePart ?
+      (step_ + (settings_.options.drums.randomness * (stepsPerPattern() / KNOB_RANGE ))) % stepsPerPattern() 
+       : step_;
+    uint8_t level = ReadDrumMap(stepNumber, i, x, y);
 
     // if (level < 255 - part_perturbation_[i]) {
     //   level += part_perturbation_[i];
