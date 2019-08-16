@@ -76,6 +76,18 @@ PatternGenerator pattern_generator;
 //   { node_24, node_19, node_17, node_20, node_22 },
 // };
 
+  // Swing Pattern Generated from Rakefile - 63 == OFF
+{ 0, 2, 3, 6, 63, 7, 63, 8, 9, 63, 10, 11 },
+{ 0, 2, 3, 5, 6, 63, 7, 63, 8, 9, 10, 11 },
+{ 0, 1, 2, 3, 4, 6, 4, 5, 8, 9, 10, 11 },
+{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 },
+{ 0, 63, 1, 2, 3, 63, 4, 5, 6, 8, 9, 11 },
+{ 0, 63, 1, 63, 2, 3, 63, 4, 5, 6, 9, 11 },
+{ 0, 63, 1, 63, 2, 63, 3, 63, 4, 5, 6, 9 },
+{ 0, 63, 1, 63, 2, 63, 3, 63, 4, 63, 5, 6 }
+};
+static const uint8_t one_swing_pattern[12] = { 0, 63, 1, 2, 3, 63, 4, 5, 6, 8, 9, 11 };
+
 static const prog_uint8_t* flat_drum_map[16] = {
   node_0, node_1, node_2, node_3, node_4, node_5, node_6, node_7, node_8, node_9, node_10, node_11, node_12, node_13, node_14, node_15
 };
@@ -129,14 +141,21 @@ void PatternGenerator::EvaluateDrums() {
   uint8_t x = settings_.options.drums.x;
   uint8_t y = settings_.options.drums.y;
   uint8_t accent_bits = 0;
-
+  uint8_t swing_pattern_index = settings_.options.drums.randomness / 23; ///(23 is roughly 255 / 11)
+    
   for (uint8_t i = 0; i < kNumParts; ++i) {
     bool isSnarePart = i == 1;
     bool isHihatPart = i == 2;
-    uint8_t stepNumber = isSnarePart ?
-      (step_ + (settings_.options.drums.randomness * (stepsPerPattern() / KNOB_RANGE ))) % stepsPerPattern() 
-       : step_;
-    uint8_t level = ReadDrumMap(stepNumber, i, x, y);
+
+    // use  settings_.options.drums.randomness to control "swing"
+    //For 16th swing we want to group in sets of 12, stretching out the first 6 and contracting the second 6
+    // |.....:.....|.....:.....|.....:.....| 50%
+    // |<---->:>--<|<---->:>--<|<---->:>--<| 60%
+    // |<----->:>-<|<----->:>-<|<----->:>-<| 70%
+    // |<------>:><|<------>:><|<------>:><| 80%
+    uint8_t swung_offset = swing_patterns_lookup[swing_pattern_index][step_ % 12];
+    uint8_t stepNumber = (step_ - (step_ % 12)) + swung_offset;
+    uint8_t level = stepNumber == 63 ? 0 : ReadDrumMap(stepNumber, i, x, y);
 
     // if (level < 255 - part_perturbation_[i]) {
     //   level += part_perturbation_[i];
