@@ -148,7 +148,7 @@ void PatternGenerator::EvaluateDrums() {
     uint8_t threshold = ~settings_.density[i];
     if (level > threshold) {
       if (level > 192) {
-        if(!isHihatPart || (isHihatPart && y > 100)){
+        if ((!isHihatPart && !isSnarePart) || (isHihatPart && y > 100)) {
           accent_bits |= instrument_mask;
         }
       }
@@ -156,6 +156,15 @@ void PatternGenerator::EvaluateDrums() {
     }
     instrument_mask <<= 1;
   }
+  uint8_t snareDensity = 256 - settings_.density[1]; // trigger resolution from snare density
+  uint8_t power = snareDensity >> 4;                 // 256 >> 5 == 8
+  // temporarily send to kick accent bit since snare bit is being weird
+  if (power > 0 && step_ % (1 << (power - 1)) == 0) {
+    accent_bits |= 1; // turn on kick accent bit
+  }  else  {
+    accent_bits &= ~1; // turn off kick accent bit
+  }
+
   // Killing the output_clock mode because it keeps getting reset to this mode
   // every time I upload to the board
   // if (output_clock()) {
