@@ -1,20 +1,60 @@
 swing_patterns_string = <<-END
-0  6  .  7  .  8  .  9  .  10 .  11 : — 0
-0  3  6  .  7  .  8  9  .  10 .  11 : — 1
-0  2  3  6  .  7  .  8  9  .  10 11 : — 2
-0  2  3  5  6  .  7  .  8  9  10 11 : — 3
-0  1  2  3  4  6  4  5  8  9  10 11 : — 4
-0  1  2  3  4  5  6  7  8  9  10 11 : — 5
-0  .  1  2  3  4  5  6  7  8  9  11 : — 6
-0  .  1  2  3  .  4  5  6  8  9  11 : — 7
-0  .  1  .  2  3  .  4  5  6  9  11 : — 8
-0  .  1  .  2  .  3  .  4  5  6  9  : — 9
-0  .  1  .  2  .  3  .  4  .  5  6  : — 10
+0  6  .  7  .  8  .  9  .  10 .  11 12 .  .  .  .  .  .  .  .  .  .  .  : — 0
+0  3  6  .  7  .  8  9  .  10 .  11 12 .  .  .  .  .  .  .  .  .  .  .  : — 1
+0  2  3  6  .  7  .  8  9  .  10 11 12 .  .  .  .  .  .  .  .  .  .  .  : — 2
+0  2  3  5  6  .  7  .  8  9  10 11 12 .  .  .  .  .  .  .  .  .  .  .  : — 3
+0  1  2  3  4  6  4  5  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 : — 4
+0  1  2  3  4  5  6  7  8  9  10 11 12 .  .  .  .  .  .  .  .  .  .  .  : — 5
+0  .  1  2  3  4  5  6  7  8  9  11 12 .  .  .  .  .  .  .  .  .  .  .  : — 6
+0  .  1  2  3  .  4  5  6  8  9  11 12 .  .  .  .  .  .  .  .  .  .  .  : — 7
+0  .  1  .  2  3  .  4  5  6  9  11 12 .  .  .  .  .  .  .  .  .  .  .  : — 8
+0  .  1  .  2  .  3  .  4  5  6  9  12 .  .  .  .  .  .  .  .  .  .  .  : — 9
+0  .  1  .  2  .  3  .  4  .  5  6  12 .  .  .  .  .  .  .  .  .  .  .  : — 10
 END
 
 task :default do
     puts "// Swing Pattern Generated from Rakefile"
     puts swing_patterns_string.split("\n").map { |line|
-        line.split[0..11].map{ |item| item == "." ? 63 : item.to_i}.join(", ")
+        line.split[0..23].map{ |item| item == "." ? 63 : item.to_i}.join(", ")
     }.map{|line| "{ #{line} }"}.join(",\n")
 end
+
+# the generalized n-degree Bezier summation
+def bezier(t, points)
+    n = points.length - 1
+    points.each_with_index.inject(0.0) do |sum, (point, i)|
+      sum += n.choose(i) * (1-t)**(n - i) * t**i * point.y
+    end
+  end
+   
+  class Fixnum
+    def choose(k)
+      self.factorial / (k.factorial * (self - k).factorial)
+    end
+    def factorial
+      (2 .. self).reduce(1, :*)
+    end
+  end
+
+def cubic_bezier(x, amount)
+    a = amount
+    b = 0
+    c = 0
+    d = 1 - amount
+    return bezier(x, [
+        [0,0],
+        [amount, 0],
+        [1, 1 - amount],
+        [1, 1]
+    ])
+end
+
+def generate(swing_amount)
+    (0..23).map{ |n| 
+        (cubic_bezier(n / 24, 0.7) * 24).to_i
+    }
+end
+
+task :generate do 
+    print generate(0.7)
+end 

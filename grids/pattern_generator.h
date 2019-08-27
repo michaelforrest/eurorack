@@ -134,6 +134,7 @@ class PatternGenerator {
   static inline void Reset() {
     step_ = 0;
     pulse_ = 0;
+    pulse_index_ = 0;
     memset(euclidean_step_, 0, sizeof(euclidean_step_));
   }
 
@@ -143,11 +144,15 @@ class PatternGenerator {
 
   static inline void TickClock(uint8_t num_pulses) {
     Evaluate();
-    beat_ = (step_ & 0x7) == 0;
+    beat_ = (step_ & 0x7) == 0; // every 8th step
     first_beat_ = step_ == 0;
 
     pulse_ += num_pulses;
 
+    pulse_index_ += num_pulses;
+    pulse_index_ = pulse_index_ % 96;
+
+    // stuff below figures out step_ value as it resets _pulse to zero
     // Wrap into ppqn steps.
     while (pulse_ >= pulsesPerStep()) {
       pulse_ -= pulsesPerStep();
@@ -230,6 +235,10 @@ class PatternGenerator {
     if (state_ & 2) {
       result |= LED_SD;
     }
+    // let's have a light on every pulse_ = 0
+    // if(state_ & OUTPUT_BIT_CLOCK){
+    //   result |= LED_SD;
+    // }
     if (state_ & 4) {
       result |= LED_HH;
     }
@@ -241,6 +250,7 @@ class PatternGenerator {
   static void Evaluate();
   static void EvaluateEuclidean();
   static void EvaluateDrums();
+  static void EvaluateMFDrums(uint8_t pulse_index);
 
   static uint8_t ReadDrumMap(
       uint8_t step,
@@ -252,6 +262,7 @@ class PatternGenerator {
 
   static uint8_t pulse_;
   static uint8_t step_;
+  static uint8_t pulse_index_;
   static uint8_t euclidean_step_[kNumParts];
   static bool first_beat_;
   static bool beat_;

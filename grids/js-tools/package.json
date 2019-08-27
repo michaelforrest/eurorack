@@ -1,0 +1,17 @@
+{
+  "name": "js-tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "bezier-easing": "^2.1.0",
+    "lodash": "^4.17.15"
+  }
+}

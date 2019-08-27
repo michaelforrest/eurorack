@@ -39,6 +39,9 @@ Options PatternGenerator::options_;
 uint8_t PatternGenerator::pulse_;
 
 /* static */
+uint8_t PatternGenerator::pulse_index_;
+
+/* static */
 uint8_t PatternGenerator::step_;
 
 /* static */
@@ -76,17 +79,38 @@ PatternGenerator pattern_generator;
 //   { node_24, node_19, node_17, node_20, node_22 },
 // };
 
-  // Swing Pattern Generated from Rakefile - 63 == OFF
-{ 0, 2, 3, 6, 63, 7, 63, 8, 9, 63, 10, 11 },
-{ 0, 2, 3, 5, 6, 63, 7, 63, 8, 9, 10, 11 },
-{ 0, 1, 2, 3, 4, 6, 4, 5, 8, 9, 10, 11 },
-{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 },
-{ 0, 63, 1, 2, 3, 63, 4, 5, 6, 8, 9, 11 },
-{ 0, 63, 1, 63, 2, 3, 63, 4, 5, 6, 9, 11 },
-{ 0, 63, 1, 63, 2, 63, 3, 63, 4, 5, 6, 9 },
-{ 0, 63, 1, 63, 2, 63, 3, 63, 4, 63, 5, 6 }
+// static const uint8_t swing_patterns_lookup[11][12] = {
+//   // Swing Pattern Generated from Rakefile - 63 == OFF
+// { 0, 6, 63, 7, 63, 8, 63, 9, 63, 10, 63, 11 },
+// { 0, 3, 6, 63, 7, 63, 8, 9, 63, 10, 63, 11 },
+// { 0, 2, 3, 6, 63, 7, 63, 8, 9, 63, 10, 11 },
+// { 0, 2, 3, 5, 6, 63, 7, 63, 8, 9, 10, 11 },
+// { 0, 1, 2, 3, 4, 6, 4, 5, 8, 9, 10, 11 },
+// { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 },
+// { 0, 63, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11 },
+// { 0, 63, 1, 2, 3, 63, 4, 5, 6, 8, 9, 11 },
+// { 0, 63, 1, 63, 2, 3, 63, 4, 5, 6, 9, 11 },
+// { 0, 63, 1, 63, 2, 63, 3, 63, 4, 5, 6, 9 },
+// { 0, 63, 1, 63, 2, 63, 3, 63, 4, 63, 5, 6 }
+// };
+static const uint8_t swing_patterns_lookup[16][24] = {
+{  0,  5,  8, 10, 11, 13, 14, 15, 16, 17, 18, 19, 99, 20, 21, 99, 22, 99, 99, 23, 99, 99, 99, 99 }, // 0 swing: 0.03
+{  0,  5,  7,  9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 99, 20, 21, 99, 22, 99, 23, 99, 99, 99, 99 }, // 1 swing: 0.08
+{  0,  4,  6,  8,  9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 99, 20, 21, 99, 22, 99, 23, 99, 99, 99 }, // 2 swing: 0.14
+{  0,  3,  5,  7,  8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 99, 20, 21, 99, 22, 99, 23, 99, 99 }, // 3 swing: 0.19
+{  0,  3,  4,  6,  7,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 99, 20, 21, 99, 22, 23, 99, 99 }, // 4 swing: 0.25
+{  0,  2,  4,  5,  6,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 99, 20, 21, 22, 99, 23, 99 }, // 5 swing: 0.31
+{  0,  2,  3,  4,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 99, 21, 22, 23, 99 }, // 6 swing: 0.36
+{  0,  1,  2,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 99, 22, 23 }, // 7 swing: 0.42
+{  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23 }, // 8 swing: 0.47
+{  0, 99,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 }, // 9 swing: 0.53
+{  0, 99,  1,  2, 99,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22 }, // 10 swing: 0.58
+{  0, 99, 99,  1,  2,  3, 99,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21 }, // 11 swing: 0.64
+{  0, 99, 99,  1, 99,  2,  3,  4, 99,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 21 }, // 12 swing: 0.69
+{  0, 99, 99, 99,  1,  2, 99,  3,  4, 99,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 16, 17, 19, 20 }, // 13 swing: 0.75
+{  0, 99, 99, 99,  1, 99,  2, 99,  3,  4, 99,  5,  6,  7,  8,  9, 10, 11, 12, 13, 15, 16, 18, 20 }, // 14 swing: 0.81
+{  0, 99, 99, 99, 99,  1, 99,  2, 99,  3,  4, 99,  5,  6,  7,  8,  9, 10, 11, 12, 14, 15, 17, 19 }, // 15 swing: 0.86
 };
-static const uint8_t one_swing_pattern[12] = { 0, 63, 1, 2, 3, 63, 4, 5, 6, 8, 9, 11 };
 
 static const prog_uint8_t* flat_drum_map[16] = {
   node_0, node_1, node_2, node_3, node_4, node_5, node_6, node_7, node_8, node_9, node_10, node_11, node_12, node_13, node_14, node_15
@@ -141,7 +165,7 @@ void PatternGenerator::EvaluateDrums() {
   uint8_t x = settings_.options.drums.x;
   uint8_t y = settings_.options.drums.y;
   uint8_t accent_bits = 0;
-  uint8_t swing_pattern_index = settings_.options.drums.randomness / 23; ///(23 is roughly 255 / 11)
+  uint8_t swing_pattern_index = settings_.options.drums.randomness / 16; // 
     
   for (uint8_t i = 0; i < kNumParts; ++i) {
     bool isSnarePart = i == 1;
@@ -153,9 +177,9 @@ void PatternGenerator::EvaluateDrums() {
     // |<---->:>--<|<---->:>--<|<---->:>--<| 60%
     // |<----->:>-<|<----->:>-<|<----->:>-<| 70%
     // |<------>:><|<------>:><|<------>:><| 80%
-    uint8_t swung_offset = swing_patterns_lookup[swing_pattern_index][step_ % 12];
-    uint8_t stepNumber = (step_ - (step_ % 12)) + swung_offset;
-    uint8_t level = stepNumber == 63 ? 0 : ReadDrumMap(stepNumber, i, x, y);
+    uint8_t swung_offset = swing_patterns_lookup[swing_pattern_index][step_ % 24];
+    uint8_t stepNumber = (step_ - (step_ % 24)) + swung_offset;
+    uint8_t level = swung_offset == 99 ? 0 : ReadDrumMap(stepNumber, i, x, y);
 
     // if (level < 255 - part_perturbation_[i]) {
     //   level += part_perturbation_[i];
@@ -192,6 +216,57 @@ void PatternGenerator::EvaluateDrums() {
   // } else {
     state_ |= accent_bits << 3;
   // }
+}
+// pulse index is 0..<96
+// we swing on the basis of 96/4 = 24
+// but our patterns are  defined on a 1/32 basis  (96/32 = 3)
+void PatternGenerator::EvaluateMFDrums(uint8_t pulse_index) {
+  uint8_t instrument_mask = 1;
+  uint8_t x = settings_.options.drums.x;
+  uint8_t y = settings_.options.drums.y;
+  uint8_t accent_bits = 0;
+  uint8_t swing_pattern_index = settings_.options.drums.randomness / 16; // 
+  
+  if(pulse_ == 0){
+    uint8_t snareDensity = 256 - settings_.density[1]; // trigger resolution from snare density
+    uint8_t power = snareDensity >> 4;                 // 256 >> 5 == 8
+    // temporarily send to kick accent bit since snare bit is being weird
+    if (power > 0 && step_ % (1 << (power - 1)) == 0) {
+      accent_bits |= 1; // turn on kick accent bit
+    }  else  {
+      accent_bits &= ~1; // turn off kick accent bit
+    }
+    state_ |= accent_bits << 3;
+  }
+
+  uint8_t swung_offset = swing_patterns_lookup[swing_pattern_index][pulse_index % 24];
+  uint8_t pulse_with_offset = (pulse_index - (pulse_index % 24)) + swung_offset;
+
+  if( pulse_with_offset % 3 != 0) { // our patterns are 32 per 96 
+     return;
+  }
+
+  for (uint8_t i = 0; i < kNumParts; ++i) {
+    bool isSnarePart = i == 1;
+    bool isHihatPart = i == 2;
+
+    uint8_t stepNumber = pulse_with_offset / 3;
+    uint8_t level = swung_offset == 99 ? 0 : ReadDrumMap(stepNumber, i, x, y);
+
+    uint8_t threshold = ~settings_.density[i];
+    if (level > threshold) {
+      if (level > 192) {
+        if ((isHihatPart && y > 100)) {
+          // not trying to use accent for anything but open hat and regular trigger now
+          state_ |= instrument_mask << 3;
+        }
+      }
+      state_ |= instrument_mask; // if we're above the threshold, hit that drum
+    }
+    instrument_mask <<= 1;
+  }
+  
+  
 }
 
 /* static */
@@ -260,16 +335,18 @@ void PatternGenerator::Evaluate() {
     state_ |= OUTPUT_BIT_CLOCK;
   }
 
+  EvaluateMFDrums(pulse_index_);
+
   // Refresh only at step changes.
   if (pulse_ != 0) {
     return;
   }
 
-  if (options_.output_mode == OUTPUT_MODE_EUCLIDEAN) {
-    EvaluateEuclidean();
-  } else {
-    EvaluateDrums();
-  }
+  // if (options_.output_mode == OUTPUT_MODE_EUCLIDEAN) {
+  //   EvaluateEuclidean();
+  // } else {
+  //   EvaluateMFDrums();
+  // }
 }
 
 /* static */
