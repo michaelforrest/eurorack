@@ -63,13 +63,33 @@ const float chords[kChordNumChords][kChordNumNotes] = {
   { 0.00f, 3.00f,  6.00f, 10.00f },  // Half Diminished
   { 0.00f, 3.00f,  6.00f,  9.00f },  // Fully Diminished
 };
+// JUST INTONATION
+const float chordsAsRatios[kChordNumChords][kChordNumNotes] = {
+  { 1.00f, 1.01f,  1.99f, 2.00f },  // Octave ✅
+  { 1.00f, 1.50f,  1.50f, 2.00f },  // Fifth ✅
+  { 1.00f, 1.20f,  1.50f, 2.00f },  // Minor 
+  { 1.00f, 1.20f,  1.50f, 1.80f },  // Minor 7th
+  { 1.00f, 1.20f, 1.80f,  2.25f },  // Minor 9th
+  { 1.00f, 1.20f, 1.80f, 2.33333333f },  // Minor 11th
+  { 1.00f, 1.25f,  1.50f, 2.00f },  // Major
+  { 1.00f, 1.25f,  1.50f, 1.8750f },  // Major 7th ??
+  { 1.00f, 1.25f, 1.8750f, 2.25f },  // Major 9th
+  { 1.00f, 1.333333333f,  1.50f, 2.00f },  // Sus4
+  { 1.00f, 1.125f,  1.66666666f, 2.25f },  // 69
+  { 1.00f, 1.25f,  1.50f,  1.66666666f },  // 6th
+  { 1.00f, 1.50f, 2.25f, 2.8750f },  // 10th (Spread maj7)
+  { 1.00f, 1.25f,  1.50f, 1.80f },  // Dominant 7th
+  { 1.00f, 1.50f, 1.80f, 2.0416666667f },  // Dominant 7th (b9)
+  { 1.00f, 1.20f,  1.40625f, 1.80f },  // Half Diminished
+  { 1.00f, 1.20f,  1.40625f,  1.6666666f },  // Fully Diminished
+};
 
 #else
 
 const float chords[kChordNumChords][kChordNumNotes] = {
   { 0.00f, 0.01f, 11.99f, 12.00f },  // OCT
   { 0.00f, 7.01f,  7.00f, 12.00f },  // 5
-  { 0.00f, 5.00f,  7.00f, 12.00f },  // sus4
+  { 0.00f, 5.00f,  7.00f, 12.00f },  // sus4 
   { 0.00f, 3.00f,  7.00f, 12.00f },  // m
   { 0.00f, 3.00f,  7.00f, 10.00f },  // m7
   { 0.00f, 3.00f, 10.00f, 14.00f },  // m9
@@ -97,7 +117,8 @@ void ChordEngine::Init(BufferAllocator* allocator) {
 void ChordEngine::Reset() {
   for (int i = 0; i < kChordNumChords; ++i) {
     for (int j = 0; j < kChordNumNotes; ++j) {
-      ratios_[i * kChordNumNotes + j] = SemitonesToRatio(chords[i][j]);
+      // ratios_[i * kChordNumNotes + j] = SemitonesToRatio(chords[i][j]);
+      ratios_[i * kChordNumNotes + j] = chordsAsRatios[i][j];
     }
   }
 }

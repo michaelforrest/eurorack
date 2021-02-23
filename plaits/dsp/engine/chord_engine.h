@@ -41,7 +41,7 @@ const int kChordNumNotes = 4;
 const int kChordNumVoices = 5;
 const int kChordNumHarmonics = 3;
 
-// #define JON_CHORDS
+#define JON_CHORDS
 
 #ifdef JON_CHORDS
 const int kChordNumChords = 17;
